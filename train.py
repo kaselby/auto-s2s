@@ -11,13 +11,14 @@ def create_model(args):
     tokenized_sets = [tokenize_pairs(ps, wd) for ps in pair_sets]
 
     n_pairs = [len(s) for s in tokenized_sets]
+    max_size=sum(n_pairs)
 
     train_sets, val_sets, val_indices = get_validation_set(tokenized_sets, val_frac=args.val_frac)
     model_path = init_save(args, val_indices)
 
     print("Variables processed.")
 
-    model = Seq2Seq().init_model(wd, args.hidden_size, args.layers, args.layers, n_pairs)
+    model = Seq2Seq().init_model(wd, args.hidden_size, args.layers, args.layers, max_size)
     del sets, pair_sets, tokenized_sets
     return model, model_path, train_sets, val_sets
 

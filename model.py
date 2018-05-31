@@ -112,7 +112,7 @@ class Seq2Seq(nn.Module):
 
     # Trains on a single batch
     def train_naive(self, batch, tf_ratio=0.5):
-        input_batch, input_lengths, target_batch, target_lengths, indices = batch
+        input_batch, input_lengths, target_batch, target_lengths = batch
 
         all_decoder_outputs = self._apply_batched(batch, tf_ratio=tf_ratio, train=True, memory=False)
 
@@ -127,7 +127,7 @@ class Seq2Seq(nn.Module):
         return loss.data[0]
 
     def train_memory(self, batch, tf_ratio=0.5):
-        input_batch, input_lengths, target_batch, target_lengths = batch
+        input_batch, input_lengths, target_batch, target_lengths, indices = batch
 
         all_decoder_outputs = self._apply_batched(batch, tf_ratio=tf_ratio, train=True, memory=True)
 

@@ -11,7 +11,7 @@ class TrainingHandler(object):
         self.model=model
 
         self.train_set = [pair for movie in train_set for pair in movie]
-        self.val_set = [pair for movie in val_set for pair in movie]
+        self.val_set = [pair for movie in val_set for pair in movie] if val_set is not None else None
 
         self.clip = clip
         self.tf_ratio = tf_ratio
@@ -53,7 +53,7 @@ class TrainingHandler(object):
                 self.optim.zero_grad()
 
                 # Run the train function
-                loss = self.model.train_batch(batch, tf_ratio=self.tf_ratio)
+                loss = self.model.train_naive(batch, tf_ratio=self.tf_ratio)
 
                 # Clip gradient norms
                 c = torch.nn.utils.clip_grad_norm(self.model.parameters(), self.clip)
@@ -77,14 +77,14 @@ class TrainingHandler(object):
                                                   float(loss_avg), float(val_loss_avg))
                     self._print_log(print_summary)
 
-            if self.epoch < epochs:
+            if epoch < epochs:
                 if save_interval > 0:
                     if self.epoch % save_interval == 0:
-                        name = "auto_" + str(self.epoch) + ".tar"
+                        name = "auto_" + str(epoch) + ".tar"
                         self._save_checkpoint(self.save_dir, name, mem=False)
             else:
                 if self.save_dir is not None:
-                    name = "auto_" + str(self.epoch) + ".tar"
+                    name = "auto_" + str(epoch) + ".tar"
                     self._save_checkpoint(self.save_dir, name, save_loss=True, mem=False)
 
     def _val_autoencoder(self, batch_size):
