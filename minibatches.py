@@ -57,9 +57,9 @@ def batch_pairs(inputs, targets, sort=True):
 
     return (input_var, input_lengths, target_var, target_lengths)
 
-def random_batches_auto(batch_size, lines):
-    n_batches = int(len(lines) / batch_size)
-    p = np.random.permutation(len(lines))
+def random_batches(batch_size, pairs, auto=False):
+    n_batches = int(len(pairs) / batch_size)
+    p = np.random.permutation(len(pairs))
 
     batches = []
     for i in range(n_batches):
@@ -67,9 +67,12 @@ def random_batches_auto(batch_size, lines):
         target_seqs = []
         # Choose random pairs
         for j in range(batch_size):
-            line = lines[p[i*batch_size+j]]
-            input_seqs.append(line)
-            target_seqs.append(line)
+            pair = pairs[p[i*batch_size+j]]
+            input_seqs.append(pair[0])
+            if auto:
+                target_seqs.append(pair[0])
+            else:
+                target_seqs.append(pair[1])
 
         batches.append(batch_pairs(input_seqs, target_seqs))
 
@@ -163,7 +166,6 @@ def memory_batch_pairs(inputs, targets, seq_indices, sort=True):
     # Turn padded arrays into (batch_size x max_len) tensors, transpose into (max_len x batch_size)
     input_var = Variable(torch.LongTensor(input_padded)).transpose(0, 1)
     target_var = Variable(torch.LongTensor(target_padded)).transpose(0, 1)
-    index_var = Variable(torch.LongTensor(seq_indices))
 
     if USE_CUDA:
         input_var = input_var.cuda()

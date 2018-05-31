@@ -194,20 +194,24 @@ def get_pairs(lines):
    # print(str(n_pairs) + " pairs of index lists collected.")
     return pairs
 
-def get_validation_set(pairs, val_size):
-    if val_size <= 0:
-        return pairs, None
-    n = len(pairs)
-    indices = random.sample(range(n), val_size)
-    train_set = []
-    val_set = []
+def get_validation_set(movies, val_frac):
+    if val_frac <= 0:
+        return movies, None, None
+    n = len(movies)
+    n_val = math.floor(n*val_frac)
+    indices = random.sample(range(n), n_val)
+    train_sets = []
+    val_sets = []
     for i in range(n):
         if not i in indices:
-            train_set.append(pairs[i])
+            train_sets.append(movies[i])
         else:
-            val_set.append(pairs[i])
+            val_sets.append(movies[i])
+    val_pairs = sum([len(v) for v in val_sets])
+    train_pairs = sum([len(t) for t in train_sets])
     print("Training and validation sets generated.")
-    return train_set, val_set
+    print(train_pairs, "training pairs total.", val_pairs, "validation pairs total.")
+    return train_sets, val_sets, indices
 
 #
 #   Stage 3b: Insert SOS/EOS tokens and convert to indices

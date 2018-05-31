@@ -7,13 +7,11 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 
 class TrainingHandler(object):
-    def __init__(self, model, train_lines, val_lines, learning_rate, save_dir, clip=5.0, tf_ratio=0.5, eps=1e-8):
+    def __init__(self, model, train_set, val_set, learning_rate, save_dir, clip=5.0, tf_ratio=0.5, eps=1e-8):
         self.model=model
-        self.train_lines = train_lines
-        self.val_lines = val_lines
 
-        self.train_set = None
-        self.val_set = None
+        self.train_set = [pair for movie in train_set for pair in movie]
+        self.val_set = [pair for movie in val_set for pair in movie]
 
         self.clip = clip
         self.tf_ratio = tf_ratio
@@ -43,15 +41,12 @@ class TrainingHandler(object):
         start = time.time()
 
         epoch = 0
-
-        all_train_lines = [line for movie in self.train_lines for conv in movie for line in conv]
-
         while epoch < epochs:
             epoch += 1
 
             loss_total = 0.0
 
-            batches = random_batches_auto(batch_size, all_train_lines)
+            batches = random_batches(batch_size, self.train_set, auto=True)
             n_batches = len(batches)
 
             for batch in batches:
@@ -93,10 +88,9 @@ class TrainingHandler(object):
                     self._save_checkpoint(self.save_dir, name, save_loss=True, mem=False)
 
     def _val_autoencoder(self, batch_size):
-        all_val_lines = [line for movie in self.val_lines for conv in movie for line in conv]
         total_val_loss = 0.0
 
-        batches = random_batches_auto(batch_size, all_val_lines)
+        batches = random_batches(batch_size, self.val_set, auto=True)
         n_batches = len(batches)
 
         for batch in batches:
@@ -111,72 +105,54 @@ class TrainingHandler(object):
         print("Beginning training...")
         start = time.time()
 
-        training_subsets = partition_movies(self.train_set, set_size=self.set_size)
-        for subset, _, _ in training_subsets:
-            for movie in subset:
-                self.model.memory.add_pairs(movie)
+        for movie in self.train_set:
+            self.model.memory.add_pairs(movie)
 
         epoch = 0
         while epoch < epochs:
-            self.epoch += 1
+            epoch += 1
 
-            if not freeze_enc and epoch > 1:
-                self.model.memory.update_encoder(self.model.encoder)
+            loss_total = 0.0
 
-            total_batches=0
-            loss_total = 0
-            for movies, mindex, maxdex in training_subsets:
-                # Set inactive region in memory
-                self.memory.set_active(mindex, maxdex)
+            batches = memory_random_batches(batch_size, self.train_set)
+            n_batches = len(batches)
 
-                # Get training data for this cycle
-                batches = memory_random_batches(batch_size, movies)
-                n_batches = len(batches)
-                total_batches += n_batches
+            for batch in batches:
+                self.optim.zero_grad()
 
-                for i in range(n_batches):
-                    self.optim.zero_grad()
+                # Run the train function
+                loss = self.model.train_batch(batch, tf_ratio=self.tf_ratio)
 
-                    # Run the train function
-                    loss = self.model.train_memory(batches[i], mindex, maxdex, tf_ratio=self.tf_ratio, memory=True)
+                # Clip gradient norms
+                c = torch.nn.utils.clip_grad_norm(self.model.parameters(), self.clip)
 
-                    # Clip gradient norms
-                    c = torch.nn.utils.clip_grad_norm(self.model.parameters(), self.clip)
+                # Update parameters with optimizers
+                self.optim.step()
+                loss_total += loss
 
-                    # Update parameters with optimizers
-                    self.optim.step()
-                    loss_total += loss
-
-                del batches
-
-            loss_avg = loss_total / total_batches
-
-            # Calculate validation loss
+            loss_avg = loss_total / n_batches
 
             if self.val_set is not None:
-                val_loss_avg = self._val_memory(batch_size)
+                val_loss_avg = self._val_autoencoder(batch_size)
             else:
                 val_loss_avg = loss_avg
 
-            self.train_losses.append(loss_avg)
-            self.val_losses.append(val_loss_avg)
-
-            # Print progress and loss every X epochs
             if print_interval > 0:
                 if self.epoch % print_interval == 0:
-                    print_summary = '-' * 40 + '\nEPOCH #%d SUMMARY:\nTotal time spent (time left): %s, Training loss: %.4f, Validation loss: %.4f'\
-                                    % (epoch, time_since(start, epoch / epochs), float(loss_avg), float(val_loss_avg))
+                    print_summary = '-' * 40 + '\nEPOCH #%d SUMMARY:\nTotal time spent (time left): %s, Training loss: %.4f, Validation loss: %.4f' \
+                                               % (self.epoch,
+                                                  time_since(start, (epoch) / epochs),
+                                                  float(loss_avg), float(val_loss_avg))
                     self._print_log(print_summary)
 
-            # Calculate BLEU score and save checkpoint every Y epochs
-            if epoch < epochs:
+            if self.epoch < epochs:
                 if save_interval > 0:
                     if self.epoch % save_interval == 0:
-                        name = "_" + str(epoch) + ".tar"
+                        name = "auto_" + str(self.epoch) + ".tar"
                         self._save_checkpoint(self.save_dir, name, mem=True)
             else:
                 if self.save_dir is not None:
-                    name = "_" + str(epoch) + ".tar"
+                    name = "auto_" + str(self.epoch) + ".tar"
                     self._save_checkpoint(self.save_dir, name, save_loss=True, mem=True)
 
     def _val_memory(self, batch_size):

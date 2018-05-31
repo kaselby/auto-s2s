@@ -6,20 +6,19 @@ import argparse
 def create_model(args):
     # Preprocess data
     sets, wd = import_csv(DATA_DIR + args.datafile, max_lines=args.max_lines, unk_thresh=args.unk_thresh)
+    pair_sets = [get_pairs(s) for s in sets]
 
-    conversation_sets = [tokenize_pairs(s, wd) for s in sets]
+    tokenized_sets = [tokenize_pairs(ps, wd) for ps in pair_sets]
 
-    n_pairs = [len(c) for s in conversation_sets for c in s]
-    max_size = sum(n_pairs)
+    n_pairs = [len(s) for s in tokenized_sets]
 
-    train_sets, val_sets, val_indices = process_movies(conversation_sets, val_frac=args.val_frac)
+    train_sets, val_sets, val_indices = get_validation_set(tokenized_sets, val_frac=args.val_frac)
     model_path = init_save(args, val_indices)
-    print(max_size)
 
     print("Variables processed.")
 
-    model = Seq2Seq().init_model(wd, args.hidden_size, args.layers, args.layers, max_size)
-    del sets, conversation_sets
+    model = Seq2Seq().init_model(wd, args.hidden_size, args.layers, args.layers, n_pairs)
+    del sets, pair_sets, tokenized_sets
     return model, model_path, train_sets, val_sets
 
 def init_parser():

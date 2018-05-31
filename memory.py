@@ -23,9 +23,6 @@ class Memory(nn.Module):
         self.memory_used = 0
         self.raw_memory_used = 0
 
-        self.start_index = None
-        self.end_index = None
-
         self.transform = nn.Linear(self.hidden_size, self.hidden_size, bias=False)
         # come back to bias term - bias irrelevant due to softmax right?
 
@@ -40,13 +37,6 @@ class Memory(nn.Module):
     def init_random(self):
         stdv = 1. / math.sqrt(self.hidden_size)
         nn.init.uniform(self.transform.weight, -stdv, stdv)
-
-    def set_active(self, indices=None):
-        if indices is None:
-            self.start_index=None
-            self.end_index=None
-        else:
-            self.start_index, self.end_index = indices
 
     def expand_memory_pad(self, new_size):
         assert new_size > self.memory_size
@@ -248,12 +238,9 @@ class Memory(nn.Module):
         else:
             encoded_input=input_batch.view(batch_size, self.hidden_size)
 
-        start = self.start_index if self.start_index is not None else 0
-        end = self.end_index if self.end_index is not None else self.memory_used
-
         # Convert the memory pads to Variables to track gradients
-        message_pad = Variable(self.encoded_messages[:, start:end], requires_grad=False)
-        response_pad = Variable(self.encoded_responses[:, start:end].transpose(0, 1), requires_grad=False)
+        message_pad = Variable(self.encoded_messages[:, :self.memory_used], requires_grad=False)
+        response_pad = Variable(self.encoded_responses[:, :self.memory_used].transpose(0, 1), requires_grad=False)
 
         if USE_CUDA:
             message_pad = message_pad.cuda()
