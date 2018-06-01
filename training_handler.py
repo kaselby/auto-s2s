@@ -72,14 +72,14 @@ class TrainingHandler(object):
             if print_interval > 0:
                 if self.epoch % print_interval == 0:
                     print_summary = '-' * 40 + '\nEPOCH #%d SUMMARY:\nTotal time spent (time left): %s, Training loss: %.4f, Validation loss: %.4f' \
-                                               % (self.epoch,
+                                               % (epoch,
                                                   time_since(start, (epoch) / epochs),
                                                   float(loss_avg), float(val_loss_avg))
                     self._print_log(print_summary)
 
             if epoch < epochs:
                 if save_interval > 0:
-                    if self.epoch % save_interval == 0:
+                    if epoch % save_interval == 0:
                         name = "auto_" + str(epoch) + ".tar"
                         self._save_checkpoint(self.save_dir, name, mem=False)
             else:

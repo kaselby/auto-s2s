@@ -199,11 +199,12 @@ def get_validation_set(movies, val_frac):
         return movies, None, None
     n = len(movies)
     n_val = math.floor(n*val_frac)
+    print(n,n_val)
     indices = random.sample(range(n), n_val)
     train_sets = []
     val_sets = []
     for i in range(n):
-        if not i in indices:
+        if i not in indices:
             train_sets.append(movies[i])
         else:
             val_sets.append(movies[i])
