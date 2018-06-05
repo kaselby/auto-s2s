@@ -38,7 +38,7 @@ class Seq2Seq(nn.Module):
         return self
 
     def _apply_batched(self, batch, tf_ratio=0.5, train=False, memory=False):
-        input_batch, input_lengths, target_batch, target_lengths = batch
+        input_batch, input_lengths, target_batch, target_lengths, indices = batch
         batch_size = input_batch.size(1)
 
         # Pass the input batch through the encoder
@@ -49,8 +49,7 @@ class Seq2Seq(nn.Module):
         latent_vector = encoder_hidden[:self.decoder.n_layers]  # Use last (forward) hidden state from encoder
 
         if memory:
-            context = self.memory(latent_vector)
-            decoder_hidden = context
+            decoder_hidden = self.memory(latent_vector, indices=indices)
         else:
             decoder_hidden = latent_vector
 
@@ -76,7 +75,7 @@ class Seq2Seq(nn.Module):
 
         return all_decoder_outputs
 
-    def _apply_single(self, input_seq, memory=False):
+    def _apply_single(self, input_seq, memory=False, mask_index=None):
         input_lengths = [len(input_seq)]
         input_seqs = [input_seq]
         # with torch.no_grad():
@@ -95,10 +94,9 @@ class Seq2Seq(nn.Module):
         latent_vector = encoder_hidden[:self.decoder.n_layers]  # Use last (forward) hidden state from encoder
 
         if memory:
-            decoder_hidden = self.decoder.init_hidden(latent_vector)
+            decoder_hidden = self.memory(latent_vector, indices=mask_index)
         else:
-            context = self.memory(latent_vector)
-            decoder_hidden = self.decoder.init_hidden(context)
+            decoder_hidden = latent_vector
 
         # Initialize and execute the beam search
         iterator = BeamIterator(self, decoder_hidden, 3, 3)

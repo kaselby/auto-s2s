@@ -174,13 +174,8 @@ def memory_batch_pairs(inputs, targets, seq_indices, sort=True):
     return (input_var, input_lengths, target_var, target_lengths, seq_indices)
 
 
-def memory_random_batches(batch_size, movies):
-    cumulative_lengths = [0]
-    tot=0
-    for movie in movies:
-        tot += len(movie)
-        cumulative_lengths.append(tot)
-    n_pairs = sum(cumulative_lengths)
+def memory_random_batches(batch_size, all_pairs):
+    n_pairs = len(all_pairs)
     n_batches = int(n_pairs / batch_size)
     p = np.random.permutation(n_pairs)
 
@@ -191,13 +186,10 @@ def memory_random_batches(batch_size, movies):
         seq_indices = []
         # Choose random pairs
         for j in range(batch_size):
-            index = int(p[i*batch_size+j])
-            movie_index, pair_index = to_set(index, cumulative_lengths)
-            pair = movies[movie_index][pair_index]
-            input_seqs.append(pair[0])
-            target_seqs.append(pair[1])
-            seq_indices.append(pair_index)
-
+            k = int(p[i*batch_size+j])
+            input_seqs.append(all_pairs[k][0])
+            target_seqs.append(all_pairs[k][1])
+            seq_indices.append(k)
         batch = memory_batch_pairs(input_seqs, target_seqs, seq_indices)
         batches.append(batch)
     return batches

@@ -7,11 +7,11 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 
 class TrainingHandler(object):
-    def __init__(self, model, train_set, val_set, learning_rate, save_dir, clip=5.0, tf_ratio=0.5, eps=1e-8):
+    def __init__(self, model, train_sets, val_sets, learning_rate, save_dir, clip=5.0, tf_ratio=0.5, eps=1e-8):
         self.model=model
 
-        self.train_set = [pair for movie in train_set for pair in movie]
-        self.val_set = [pair for movie in val_set for pair in movie] if val_set is not None else None
+        self.train_set = [pair for movie in train_sets for pair in movie]
+        self.val_set = [pair for movie in val_sets for pair in movie] if val_sets is not None else None
 
         self.clip = clip
         self.tf_ratio = tf_ratio
@@ -27,14 +27,11 @@ class TrainingHandler(object):
 
         self.mode = "auto"
 
-    def init_memory(self, freeze=True):
-        self.train_set = [convs_to_pairs(movie) for movie in self.train_lines]
-        self.val_set = [convs_to_pairs(movie) for movie in self.val_lines] if self.val_lines is not None else None
-        self.mode="mem"
-
-        if freeze:
-            for param in self.model.encoder.parameters():
-                param.requires_grad=False
+    def freeze_model(self):
+        for param in self.model.encoder.parameters():
+            param.requires_grad=False
+        for param in self.model.decoder.parameters():
+            param.requires_grad=False
 
     def train_autoencoder(self, epochs, batch_size, print_interval=1, save_interval=-1):
         print("Beginning training...")
@@ -105,8 +102,7 @@ class TrainingHandler(object):
         print("Beginning training...")
         start = time.time()
 
-        for movie in self.train_set:
-            self.model.memory.add_pairs(movie)
+        self.model.memory.add_pairs(self.train_set)
 
         epoch = 0
         while epoch < epochs:

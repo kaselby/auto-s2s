@@ -214,6 +214,16 @@ def get_validation_set(movies, val_frac):
     print(train_pairs, "training pairs total.", val_pairs, "validation pairs total.")
     return train_sets, val_sets, indices
 
+def get_val_from_indices(movies, val_indices):
+    train_set = []
+    val_set = []
+    for i in range(len(movies)):
+        if i in val_indices:
+            val_set.append(movies[i])
+        else:
+            train_set.append(movies[i])
+    return train_set, val_set
+
 #
 #   Stage 3b: Insert SOS/EOS tokens and convert to indices
 #

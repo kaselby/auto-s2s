@@ -227,7 +227,7 @@ class Memory(nn.Module):
 
         return msg_norms, resp_norms
 
-    def forward(self, input_batch, input_lengths, indices, encoded=True):
+    def forward(self, input_batch, input_lengths, indices=None, encoded=True):
         if self.memory_used == 0:
             return None
         batch_size = input_batch.size(1)
@@ -255,8 +255,9 @@ class Memory(nn.Module):
 
         weights = F.softmax(energies, 1)
 
-        for i in range(batch_size):
-            weights[i, indices[i]] *= 0
+        if indices is not None:
+            for i in range(batch_size):
+                weights[i, indices[i]] *= 0
 
         # Calculate the memory vector
         vector = torch.mm(weights, response_pad)                    # batch_size x hidden_size

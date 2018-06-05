@@ -153,3 +153,9 @@ def export_val(val_indices, path):
     for index in val_indices:
         val_file.write(str(index)+",")
     val_file.close()
+
+def import_val(path):
+    val_file = open(path + VAL_FILE, 'w')
+    raw_indices = val_file.readline()
+    val_file.close()
+    return [int(i) for i in raw_indices]
